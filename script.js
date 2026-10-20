@@ -30,7 +30,19 @@ const OPENING_HOURS = {
 
 /* ---------------------------------------------------------
    📱 INTELIGENTNÉ OTVÁRANIE APLIKÁCIE (SMART DEEP LINKING)
+   Pokus o priame otvorenie nainštalovanej aplikácie v mobile,
+   s automatickým presmerovaním do obchodu (Google Play / App Store),
+   ak aplikácia v zariadení nie je nainštalovaná.
    --------------------------------------------------------- */
+const APP_CONFIG = {
+  androidPackage: "com.vpsportfyziopresov",
+  customScheme: "vpsportfyzio",
+  playStoreUrl:
+    "https://play.google.com/store/apps/details?id=com.vpsportfyziopresov",
+  appStoreUrl:
+    "https://apps.apple.com/sk/app/vp-sport-fyzio-pre%C5%A1ov/id6795578804",
+};
+
 function openGymApp(event) {
   if (event) event.preventDefault();
 
@@ -41,15 +53,40 @@ function openGymApp(event) {
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
   if (isAndroid) {
-    // Android Intent priamo na aplikáciu VP Sport & Fyzio s fallbackom na Google Play
-    window.location.href =
-      "intent://#Intent;package=com.vpsportfyziopresov;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.vpsportfyziopresov;end";
+    // 1. ANDROID: Pokus o priame spustenie cez Android Intent (package + scheme)
+    // Ak appka nie je v telefóne (alebo prehliadač schému nerozpozná),
+    // S.browser_fallback_url okamžite a bez chybovej hlášky otvorí Google Play.
+    const fallbackEncoded = encodeURIComponent(APP_CONFIG.playStoreUrl);
+    window.location.href = `intent://#Intent;package=${APP_CONFIG.androidPackage};scheme=${APP_CONFIG.customScheme};S.browser_fallback_url=${fallbackEncoded};end;`;
   } else if (isIOS) {
-    // iOS presmerovanie priamo na natívny App Store link aplikácie
-    window.location.href =
-      "https://apps.apple.com/sk/app/vp-sport-fyzio-pre%C5%A1ov/id6795578804";
+    // 2. iOS (iPhone / iPad): Pokus o otvorenie custom URI schémy (vpsportfyzio://)
+    // Ak sa aplikácia do krátkeho času neotvorí (stránka ostane viditeľná),
+    // používateľa plynulo presmerujeme priamo na App Store link aplikácie
+    // (kde iOS pri nainštalovanej appke zobrazí tlačidlo „Otvoriť“).
+    let appOpened = false;
+    const markOpened = () => {
+      if (document.hidden) appOpened = true;
+    };
+    const onPageHide = () => {
+      appOpened = true;
+    };
+
+    document.addEventListener("visibilitychange", markOpened);
+    window.addEventListener("pagehide", onPageHide);
+
+    // Pokus o priame vyvolanie schémy
+    window.location.href = `${APP_CONFIG.customScheme}://`;
+
+    setTimeout(() => {
+      document.removeEventListener("visibilitychange", markOpened);
+      window.removeEventListener("pagehide", onPageHide);
+
+      if (!appOpened && !document.hidden) {
+        window.location.href = APP_CONFIG.appStoreUrl;
+      }
+    }, 1200);
   } else {
-    // Desktop (PC / Mac): plynulý presun na sekciu s tlačidlami App Store a Google Play
+    // 3. Desktop (PC / Mac): plynulý presun na sekciu s tlačidlami App Store a Google Play
     const appSection = document.getElementById("aplikacia");
     if (appSection) {
       appSection.scrollIntoView({ behavior: "smooth" });
