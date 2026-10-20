@@ -53,11 +53,12 @@ function openGymApp(event) {
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
   if (isAndroid) {
-    // 1. ANDROID: Pokus o priame spustenie cez Android Intent (package + scheme)
-    // Ak appka nie je v telefóne (alebo prehliadač schému nerozpozná),
-    // S.browser_fallback_url okamžite a bez chybovej hlášky otvorí Google Play.
-    const fallbackEncoded = encodeURIComponent(APP_CONFIG.playStoreUrl);
-    window.location.href = `intent://#Intent;package=${APP_CONFIG.androidPackage};scheme=${APP_CONFIG.customScheme};S.browser_fallback_url=${fallbackEncoded};end;`;
+    // 1. ANDROID: Štandardný MAIN/LAUNCHER Intent bez nutnosti custom URI schémy
+    // Ak aplikácia com.vpsportfyziopresov nemá zaregistrovanú vlastnú schému,
+    // tento intent cieli priamo na jej hlavnú spúšťaciu aktivitu a pri nenainštalovanej
+    // appke plynulo použije S.browser_fallback_url (Google Play).
+    window.location.href =
+      "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.vpsportfyziopresov;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.vpsportfyziopresov;end";
   } else if (isIOS) {
     // 2. iOS (iPhone / iPad): Pokus o otvorenie custom URI schémy (vpsportfyzio://)
     // Ak sa aplikácia do krátkeho času neotvorí (stránka ostane viditeľná),
